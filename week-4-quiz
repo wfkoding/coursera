@@ -1,0 +1,100 @@
+---
+title: "Prediction Assignment Writeup"
+author: "Mochamad Ramdhan"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(randomForest)
+library(rpart)
+library(e1071)
+library(gbm)
+```
+
+# Introduction
+
+The goal of this project is to predict the manner in which people did a barbell lift exercise using accelerometer data. The response variable is `classe`, which categorizes five different styles of performing the exercise. We use various machine learning methods to predict this target.
+
+# Data Loading
+
+```{r load-data}
+trainUrl <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testUrl  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+trainingData <- read.csv(url(trainUrl), na.strings = c("NA", "", "#DIV/0!"))
+testingData  <- read.csv(url(testUrl), na.strings = c("NA", "", "#DIV/0!"))
+```
+
+# Data Cleaning
+
+```{r clean-data}
+# Remove columns with too many NAs and irrelevant variables
+trainingData <- trainingData[, colSums(is.na(trainingData)) == 0]
+trainingData <- trainingData[, -(1:7)]
+
+# Partition the data
+set.seed(1234)
+inTrain <- createDataPartition(trainingData$classe, p = 0.75, list = FALSE)
+trainSet <- trainingData[inTrain, ]
+validSet <- trainingData[-inTrain, ]
+```
+
+# Model Training
+
+## Random Forest
+
+```{r rf-model}
+set.seed(1234)
+rfModel <- train(classe ~ ., data = trainSet, method = "rf", trControl = trainControl(method = "cv", number = 5))
+pred_rf <- predict(rfModel, validSet)
+confusionMatrix(pred_rf, validSet$classe)
+```
+
+# Out-of-Sample Error Estimate
+
+```{r oos-error}
+accuracy <- confusionMatrix(pred_rf, validSet$classe)$overall['Accuracy']
+oos_error <- 1 - accuracy
+oos_error
+```
+
+# Final Prediction on 20 Test Cases
+
+```{r final-predict}
+pred_final <- predict(rfModel, testingData)
+pred_final
+```
+
+# Answers to Prediction Quiz
+
+Berikut adalah hasil prediksi dari 20 test cases yang akan digunakan untuk Course Project Prediction Quiz:
+
+1. `r pred_final[1]` (Pilihan: A-E)
+2. `r pred_final[2]`
+3. `r pred_final[3]`
+4. `r pred_final[4]`
+5. `r pred_final[5]`
+6. `r pred_final[6]`
+7. `r pred_final[7]`
+8. `r pred_final[8]`
+9. `r pred_final[9]`
+10. `r pred_final[10]`
+11. `r pred_final[11]`
+12. `r pred_final[12]`
+13. `r pred_final[13]`
+14. `r pred_final[14]`
+15. `r pred_final[15]`
+16. `r pred_final[16]`
+17. `r pred_final[17]`
+18. `r pred_final[18]`
+19. `r pred_final[19]`
+20. `r pred_final[20]`
+
+# Conclusion
+
+We used Random Forest due to its high accuracy and robustness. Cross-validation was employed to minimize overfitting. The final model performs well and gives reliable predictions on new data. The estimated out-of-sample error is approximately `r round(oos_error, 4)`.
+
+This report can be compiled into HTML and uploaded to GitHub for peer review.
